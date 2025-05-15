@@ -1,10 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-import numpy as np
-import matplotlib.pyplot as plt
-
-# Definir función de ajuste log-log
 def ajuste_minimos_cuadrados(x, y):
     log_x = np.log(x)
     log_y = np.log(y)
@@ -17,13 +13,19 @@ def ajuste_minimos_cuadrados(x, y):
 
     b = (n * sum_xy - sum_x * sum_y) / (n * sum_x2 - sum_x ** 2)
     a_log = (sum_y - b * sum_x) / n
-    a = np.exp(a_log)  # Deslogaritmamos a
+    a = np.exp(a_log)
 
     return a, b
 
-# Datos del tiempo
+def calcular_r2(x, y, a, b):
+    y_pred = a * x**b
+    ss_res = np.sum((y - y_pred)**2)
+    ss_tot = np.sum((y - np.mean(y))**2)
+    r2 = 1 - ss_res / ss_tot
+    return r2
+
+# Datos experimentales
 tiempo_medido = [
-    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     [0.94, 0.9, 0.9, 1.04, 1.12, 0.94, 0.97, 0.94, 1.06, 0.93],
     [1.2, 1.09, 1.31, 1.25, 1.16, 1.22, 1.38, 1.31, 1.25, 1.25],
     [1.72, 1.59, 1.81, 1.62, 1.6, 1.65, 1.72, 1.66, 1.62, 1.65],
@@ -35,38 +37,34 @@ tiempo_medido = [
     [2.84, 2.84, 2.97, 2.93, 2.94, 2.88, 2.97, 2.88, 3, 3]
 ]
 
-posicion = np.array([0, 10, 20, 30, 40, 50, 60, 70, 80, 90])  # cm
+posicion = np.array([10, 20, 30, 40, 50, 60, 70, 80, 90])  # cm
 tiempo_promedio = np.mean(tiempo_medido, axis=1)
 std_tiempo = np.std(tiempo_medido, axis=1, ddof=1)
 
-# Evitamos el cero (no puede hacerse log(0))
-posicion_no_cero = posicion[1:]
-tiempo_no_cero = tiempo_promedio[1:]
+a_tm, b_tm = ajuste_minimos_cuadrados(tiempo_promedio, posicion)
 
-# Ajuste por mínimos cuadrados en escala log-log
-a_tm, b_tm = ajuste_minimos_cuadrados(tiempo_no_cero, posicion_no_cero)
+r2 = calcular_r2(tiempo_promedio, posicion, a_tm, b_tm)
 
-# Crear la gráfica de puntos
+# Gráfica
 plt.figure(figsize=(8, 5))
-plt.scatter(tiempo_promedio, posicion, color='red', label="Datos experimentales", s=20)
 
-# Crear valores de tiempo desde muy cerca de 0
-t_vals = np.linspace(0.001, max(tiempo_no_cero), 400)
+plt.errorbar(tiempo_promedio, posicion, xerr=std_tiempo, fmt='o', color='blue', ecolor='black',
+             capsize=4, label="Valor experimental")
+
+t_vals = np.linspace(0.001, max(tiempo_promedio), 400)
 x_fit = a_tm * t_vals ** b_tm
+plt.plot(t_vals, x_fit, color='red', linestyle='dashed',
+         label=f"Ajuste de curva: x(t) = {a_tm:.2f}·t^{b_tm:.2f} | R² = {r2:.4f}")
 
-# Graficar curva ajustada
-plt.plot(t_vals, x_fit, color='blue', linestyle='dashed', label=f"Ajuste: x(t) = {a_tm:.2f}·t^{b_tm:.2f}")
 
-# Etiquetas y título
 plt.xlabel("Tiempo (segundos)")
 plt.ylabel("Posición (cm)")
-plt.title("Ajuste por mínimos cuadrados: MRUV (potencial)")
 plt.grid(True)
 plt.legend()
 plt.xlim(0, 3.5)
 plt.ylim(0, 100)
 
-plt.savefig('mi_grafica.png')
+plt.savefig('MRUV.png')
 plt.show()
 
 
